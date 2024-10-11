@@ -82,7 +82,56 @@ app.get("/api/shops", async (req, res) => {
     res.status(500).send("Error fetching shop data from the database.");
   }
 });
+app.post("/api/save-order", async (req, res) => {
+  const {
+    username,
+    shopName,
+    copies,
+    pageType,
+    pagesToPrint,
+    specificPages,
+    orientation,
+    binding,
+    documents,
+    comments,
+    grayscale,
+    frontPagePrint,
+    total,
+    payment_id,
+  } = req.body;
 
+  const query = `
+    INSERT INTO orders 
+      (username, shopName, copies, pageType, pagesToPrint, specificPages, orientation, binding, documents, comments, grayscale, frontPagePrint, total, payment_id) 
+    VALUES 
+      ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+    RETURNING id`;
+
+  const values = [
+    username,
+    shopName,
+    copies,
+    pageType,
+    pagesToPrint,
+    specificPages,
+    orientation,
+    binding,
+    documents,
+    comments,
+    grayscale,
+    frontPagePrint,
+    total,
+    payment_id,
+  ];
+
+  try {
+    const result = await db.query(query, values); // Use the db module's query method
+    res.status(201).send({ success: true, orderId: result.rows[0].id }); // Respond with the new order ID
+  } catch (error) {
+    console.error("Error saving order:", error);
+    res.status(500).send("Error saving order to the database.");
+  }
+});
 // Routes
 app.use("/api/auth", authRoutes);
 
