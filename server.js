@@ -157,6 +157,58 @@ app.get("/api/orders/:username", async (req, res) => {
     res.status(500).send("Server Error");
   }
 });
+// Update shopkeeper profile
+// Assuming you have set up your Express app and database connection
+
+app.get('/api/shopkeeper/profile', async (req, res) => {
+  const { username } = req.query; // Get username from query parameter
+
+  if (!username) {
+    return res.status(400).json({ message: 'Username is required' });
+  }
+
+  try {
+    const query = 'SELECT username, shop_description, shop_details FROM shopkeepers WHERE username = $1';
+    const values = [username];
+    const { rows } = await db.query(query, values);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: 'Shopkeeper not found' });
+    }
+
+    res.json(rows[0]);
+  } catch (error) {
+    console.error('Error fetching shopkeeper profile:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+app.put("/api/shopkeeper/profile", async (req, res) => {
+  const { username, shopDescription, shopDetails } = req.body; // Get data from request body
+
+  if (!username || !shopDescription || !shopDetails) {
+    return res.status(400).json({ message: "All fields are required!" });
+  }
+
+  try {
+    const query = `
+      UPDATE shopkeepers 
+      SET shop_description = $1, shop_details = $2 
+      WHERE username = $3
+    `;
+    const values = [shopDescription, shopDetails, username];
+    const result = await db.query(query, values);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: "Shopkeeper not found" });
+    }
+
+    res.status(200).json({ message: "Profile updated successfully" });
+  } catch (error) {
+    console.error("Error updating shopkeeper profile:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 
 // Routes
 app.use("/api/auth", authRoutes);
