@@ -99,12 +99,12 @@ app.post("/api/save-order", async (req, res) => {
     total,
     payment_id,
   } = req.body;
-
+   const status='Processing';
   const query = `
     INSERT INTO orders 
-      (username, shopName, copies, pageType, pagesToPrint, specificPages, orientation, binding, documents, comments, grayscale, frontPagePrint, total, payment_id) 
+      (username, shopName, copies, pageType, pagesToPrint, specificPages, orientation, binding, documents, comments, grayscale, frontPagePrint, total, payment_id,status) 
     VALUES 
-      ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+      ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14,$15)
     RETURNING id`;
 
   const values = [
@@ -122,6 +122,7 @@ app.post("/api/save-order", async (req, res) => {
     frontPagePrint,
     total,
     payment_id,
+    status,
   ];
 
   try {
@@ -132,6 +133,20 @@ app.post("/api/save-order", async (req, res) => {
     res.status(500).send("Error saving order to the database.");
   }
 });
+app.get("/api/orders/:username", async (req, res) => {
+  const { username } = req.params;
+  try {
+    const orders = await db.query(
+      "SELECT shopName, copies, documents, total, created_at,payment_id,status FROM orders WHERE username = $1",
+      [username]
+    );
+    res.json(orders.rows);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send("Server Error");
+  }
+});
+
 // Routes
 app.use("/api/auth", authRoutes);
 
