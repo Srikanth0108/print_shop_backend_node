@@ -5,7 +5,10 @@ const nodemailer = require("nodemailer");
 const crypto = require("crypto"); // For generating the reset token
 const db = require("./db"); // Import your database connection
 const authRoutes = require("./routes/auth");
-
+const {
+  sendOrderConfirmationEmail,
+  sendResetPasswordEmail,
+} = require("./services/emailService");
 const app = express();
 
 // Middleware
@@ -52,14 +55,7 @@ app.post("/api/auth/forgot-password", async (req, res) => {
     }
 
     // Send reset email
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: email,
-      subject: "Password Reset Request",
-      text: `Click the link to reset your password: ${resetLink}`,
-    };
-
-    await transporter.sendMail(mailOptions);
+    await sendResetPasswordEmail(email, resetLink);
     res.status(200).send("Password reset email sent successfully.");
   } catch (error) {
     console.error("Error processing forgot password request:", error);
@@ -126,8 +122,23 @@ app.post("/api/save-order", async (req, res) => {
   ];
 
   try {
-    const result = await db.query(query, values); // Use the db module's query method
-    res.status(201).send({ success: true, orderId: result.rows[0].id }); // Respond with the new order ID
+    const result = await db.query(query, values);
+    const orderId = result.rows[0].id; // Get the new order ID
+
+    // Fetch the student's email
+    const emailQuery = "SELECT email FROM students WHERE username = $1";
+    const emailResult = await db.query(emailQuery, [username]);
+
+    if (emailResult.rows.length > 0) {
+      const studentEmail = emailResult.rows[0].email;
+
+      // Send order confirmation email
+      await sendOrderConfirmationEmail(studentEmail, payment_id, total);
+    } else {
+      console.error("Student not found with username:", username);
+    }
+
+    res.status(201).send({ success: true, orderId }); // Respond with the new order ID
   } catch (error) {
     console.error("Error saving order:", error);
     res.status(500).send("Error saving order to the database.");
