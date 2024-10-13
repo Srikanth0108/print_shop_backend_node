@@ -8,6 +8,7 @@ const authRoutes = require("./routes/auth");
 const {
   sendOrderConfirmationEmail,
   sendResetPasswordEmail,
+  sendOrderStatusUpdateEmail,
 } = require("./services/emailService");
 const app = express();
 
@@ -133,7 +134,7 @@ app.post("/api/save-order", async (req, res) => {
       const studentEmail = emailResult.rows[0].email;
 
       // Send order confirmation email
-      await sendOrderConfirmationEmail(studentEmail, payment_id, total);
+      await sendOrderConfirmationEmail(studentEmail, payment_id, total,username);
     } else {
       console.error("Student not found with username:", username);
     }
@@ -224,33 +225,67 @@ app.get("/api/shopkeeper/orders/:username", async (req, res) => {
 });
 
 // Update Order Status Endpoint
+// Update Order Status Endpoint
 app.put("/api/shopkeeper/orders/:payment_id/status", async (req, res) => {
   const { payment_id } = req.params;
   const { status } = req.body;
 
-  if (!status) {
-    return res.status(400).json({ message: "Status is required" });
+  // Validate the status
+  const validStatuses = ["Completed", "Failed"];
+  if (!status || !validStatuses.includes(status)) {
+    return res.status(400).json({ message: "Invalid or missing status." });
   }
 
   try {
-    const query =
-      "UPDATE orders SET status = $1 WHERE payment_id = $2 RETURNING *";
+    // Update the order status and retrieve the updated order
+    const query = "UPDATE orders SET status = $1 WHERE payment_id = $2 RETURNING *";
     const values = [status, payment_id];
     const result = await db.query(query, values);
 
     if (result.rowCount === 0) {
-      return res.status(404).json({ message: "Order not found" });
+      return res.status(404).json({ message: "Order not found." });
     }
 
-    res
-      .status(200)
-      .json({
-        message: "Order status updated successfully",
-        order: result.rows[0],
-      });
+    const updatedOrder = result.rows[0];
+
+    // Fetch the student's email based on the username in the order
+    const studentQuery = "SELECT email, username FROM students WHERE username = $1";
+    const studentValues = [updatedOrder.username];
+    const studentResult = await db.query(studentQuery, studentValues);
+
+    if (studentResult.rowCount === 0) {
+      console.error(`Student with username ${updatedOrder.username} not found.`);
+      return res.status(500).json({ message: "Student associated with order not found." });
+    }
+
+    const student = studentResult.rows[0];
+    const studentEmail = student.email;
+    const studentUsername = student.username;
+
+    // Fetch the shop name from the order (assuming it's stored as shopName)
+    const shopName = updatedOrder.shopName || "Your Shop";
+
+    // Construct the order link (adjust URL as needed)
+    const orderLink = `http://localhost:3000/orders/${payment_id}`; // Replace with your frontend domain
+
+    // Send the email notification
+    await sendOrderStatusUpdateEmail(
+      studentEmail,
+      payment_id,
+      shopName,
+      status,
+      updatedOrder.total,
+      orderLink,
+      studentUsername
+    );
+
+    res.status(200).json({
+      message: "Order status updated successfully and email sent.",
+      order: updatedOrder,
+    });
   } catch (error) {
     console.error("Error updating order status:", error);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ message: "Internal server error." });
   }
 });
 

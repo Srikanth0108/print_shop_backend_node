@@ -34,7 +34,7 @@ const sendResetPasswordEmail = (to, link) => {
 
   return transporter.sendMail(mailOptions);
 };
-const sendOrderConfirmationEmail = (to, paymentId, total) => {
+const sendOrderConfirmationEmail = (to, paymentId, total,username) => {
   const mailOptions = {
     from: process.env.EMAIL_USER,
     to,
@@ -42,7 +42,7 @@ const sendOrderConfirmationEmail = (to, paymentId, total) => {
     html: `
       <div style="font-family: Arial, sans-serif; line-height: 1.6;">
         <h2 style="color: #4CAF50;">Order Confirmation</h2>
-        <p>Dear Valued Customer,</p>
+        <p>Dear ${username},</p>
         <p>Thank you for your order! We are pleased to inform you that your payment has been successfully processed.</p>
         
         <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
@@ -70,4 +70,65 @@ const sendOrderConfirmationEmail = (to, paymentId, total) => {
 
   return transporter.sendMail(mailOptions);
 };
-module.exports = { sendResetPasswordEmail, sendOrderConfirmationEmail };
+const sendOrderStatusUpdateEmail = (
+  to,
+  paymentId,
+  shopName,
+  status,
+  total,
+  orderLink,
+  username
+) => {
+  const subject = `Your Order [${paymentId}] has been ${status}`;
+
+  let statusMessage = "";
+  if (status === "Completed") {
+    statusMessage = "Your order has been successfully completed.";
+  } else if (status === "Failed") {
+    statusMessage = "Unfortunately, your order has failed.";
+  }
+
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to,
+    subject,
+    html: `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+        <h2 style="color: #4CAF50;">Order Status Update</h2>
+        <p>Dear ${username},</p>
+        <p>${statusMessage}</p>
+        
+        <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+          <tr>
+            <th style="text-align: left; padding: 10px; border: 1px solid #ddd;">Payment ID:</th>
+            <td style="padding: 10px; border: 1px solid #ddd;"><strong>${paymentId}</strong></td>
+          </tr>
+          <tr>
+            <th style="text-align: left; padding: 10px; border: 1px solid #ddd;">Shop Name:</th>
+            <td style="padding: 10px; border: 1px solid #ddd;"><strong>${shopName}</strong></td>
+          </tr>
+          <tr>
+            <th style="text-align: left; padding: 10px; border: 1px solid #ddd;">Status:</th>
+            <td style="padding: 10px; border: 1px solid #ddd;"><strong>${status}</strong></td>
+          </tr>
+          <tr>
+            <th style="text-align: left; padding: 10px; border: 1px solid #ddd;">Total Amount:</th>
+            <td style="padding: 10px; border: 1px solid #ddd;"><strong>${total} Rs</strong></td>
+          </tr>
+        </table>
+
+        <p style="margin-top: 20px;">You can view your order details <a href="${orderLink}" style="color: #4CAF50;">here</a>.</p>
+        <p>If you have any questions or need further assistance, please feel free to contact our support team.</p>
+
+        <p>Best Regards,<br>The Printz Team</p>
+      </div>
+    `,
+  };
+
+  return transporter.sendMail(mailOptions);
+};
+module.exports = {
+  sendResetPasswordEmail,
+  sendOrderConfirmationEmail,
+  sendOrderStatusUpdateEmail,
+};
