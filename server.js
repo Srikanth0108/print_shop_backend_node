@@ -209,6 +209,50 @@ app.put("/api/shopkeeper/profile", async (req, res) => {
   }
 });
 
+app.get("/api/shopkeeper/orders/:username", async (req, res) => {
+  const { username } = req.params;
+  try {
+    const orders = await db.query(
+      "SELECT username, copies, documents, total, created_at, payment_id, status,pagetype,pagestoprint,specificpages,orientation,binding,frontpageprint,comments,grayscale FROM orders WHERE shopName = $1 ORDER BY created_at DESC",
+      [username]
+    );
+    res.json(orders.rows);
+  } catch (err) {
+    console.error("Error fetching shopkeeper orders:", err.message);
+    res.status(500).send("Server Error");
+  }
+});
+
+// Update Order Status Endpoint
+app.put("/api/shopkeeper/orders/:payment_id/status", async (req, res) => {
+  const { payment_id } = req.params;
+  const { status } = req.body;
+
+  if (!status) {
+    return res.status(400).json({ message: "Status is required" });
+  }
+
+  try {
+    const query =
+      "UPDATE orders SET status = $1 WHERE payment_id = $2 RETURNING *";
+    const values = [status, payment_id];
+    const result = await db.query(query, values);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    res
+      .status(200)
+      .json({
+        message: "Order status updated successfully",
+        order: result.rows[0],
+      });
+  } catch (error) {
+    console.error("Error updating order status:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
 
 // Routes
 app.use("/api/auth", authRoutes);
