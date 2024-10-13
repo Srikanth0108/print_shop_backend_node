@@ -148,7 +148,7 @@ app.get("/api/orders/:username", async (req, res) => {
   const { username } = req.params;
   try {
     const orders = await db.query(
-      "SELECT shopName, copies, documents, total, created_at,payment_id,status FROM orders WHERE username = $1",
+      "SELECT shopName, copies, documents, total, created_at,payment_id,status FROM orders WHERE username = $1 ORDER BY created_at DESC",
       [username]
     );
     res.json(orders.rows);
