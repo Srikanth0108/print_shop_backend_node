@@ -93,15 +93,16 @@ app.post("/api/save-order", async (req, res) => {
     comments,
     grayscale,
     frontPagePrint,
+    frontAndBack,
     total,
     payment_id,
   } = req.body;
    const status='Processing';
   const query = `
     INSERT INTO orders 
-      (username, shopName, copies, pageType, pagesToPrint, specificPages, orientation, binding, documents, comments, grayscale, frontPagePrint, total, payment_id,status) 
+      (username, shopName, copies, pageType, pagesToPrint, specificPages, orientation, binding, documents, comments, grayscale, frontPagePrint,frontAndBack, total, payment_id,status) 
     VALUES 
-      ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14,$15)
+      ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14,$15,$16)
     RETURNING id`;
 
   const values = [
@@ -117,6 +118,7 @@ app.post("/api/save-order", async (req, res) => {
     comments,
     grayscale,
     frontPagePrint,
+    frontAndBack,
     total,
     payment_id,
     status,
@@ -214,7 +216,7 @@ app.get("/api/shopkeeper/orders/:username", async (req, res) => {
   const { username } = req.params;
   try {
     const orders = await db.query(
-      "SELECT username, copies, documents, total, created_at, payment_id, status,pagetype,pagestoprint,specificpages,orientation,binding,frontpageprint,comments,grayscale FROM orders WHERE shopName = $1 ORDER BY created_at DESC",
+      "SELECT username, copies, documents, total, created_at, payment_id, status,pagetype,pagestoprint,specificpages,orientation,binding,frontpageprint,comments,grayscale,frontandback FROM orders WHERE shopName = $1 ORDER BY created_at DESC",
       [username]
     );
     res.json(orders.rows);
@@ -266,7 +268,7 @@ app.put("/api/shopkeeper/orders/:payment_id/status", async (req, res) => {
     const shopName = updatedOrder.shopName || "Your Shop";
 
     // Construct the order link (adjust URL as needed)
-    const orderLink = `http://localhost:3000/orders/${payment_id}`; // Replace with your frontend domain
+    const orderLink = `http://localhost:3000/order-history`; // Replace with your frontend domain
 
     // Send the email notification
     await sendOrderStatusUpdateEmail(
