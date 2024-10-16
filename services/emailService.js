@@ -34,7 +34,7 @@ const sendResetPasswordEmail = (to, link) => {
 
   return transporter.sendMail(mailOptions);
 };
-const sendOrderConfirmationEmail = (to, paymentId, total,username) => {
+const sendOrderConfirmationEmail = (to, paymentId, total,username,shopname) => {
   const mailOptions = {
     from: process.env.EMAIL_USER,
     to,
@@ -47,15 +47,15 @@ const sendOrderConfirmationEmail = (to, paymentId, total,username) => {
         
         <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
           <tr>
-            <th style="text-align: left; padding: 10px; border: 1px solid #ddd;">Details</th>
-            <th style="text-align: left; padding: 10px; border: 1px solid #ddd;">Information</th>
+            <th style="text-align: left; padding: 10px; border: 1px solid #ddd;">Shop Name:</th>
+            <td style=" padding: 10px; border: 1px solid #ddd;"><strong>${shopname}</strong></td>
           </tr>
           <tr>
-            <td style="padding: 10px; border: 1px solid #ddd;">Payment ID:</td>
+            <th style="text-align: left; padding: 10px; border: 1px solid #ddd;">Payment ID:</th>
             <td style="padding: 10px; border: 1px solid #ddd;"><strong>${paymentId}</strong></td>
           </tr>
           <tr>
-            <td style="padding: 10px; border: 1px solid #ddd;">Total Amount:</td>
+            <th style="text-align: left; padding: 10px; border: 1px solid #ddd;">Total Amount:</th>
             <td style="padding: 10px; border: 1px solid #ddd;"><strong>${total} Rs</strong></td>
           </tr>
         </table>
@@ -83,9 +83,10 @@ const sendOrderStatusUpdateEmail = (
 
   let statusMessage = "";
   if (status === "Completed") {
-    statusMessage = "Your order has been successfully completed.";
+    statusMessage =
+      `Your order has been successfully completed. Please collect your order from ${shopName}`;
   } else if (status === "Failed") {
-    statusMessage = "Unfortunately, your order has failed.";
+    statusMessage = `Unfortunately, your order has failed. Please visit ${shopName} for futher details`;
   }
 
   const mailOptions = {
@@ -100,12 +101,12 @@ const sendOrderStatusUpdateEmail = (
         
         <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
           <tr>
-            <th style="text-align: left; padding: 10px; border: 1px solid #ddd;">Payment ID:</th>
-            <td style="padding: 10px; border: 1px solid #ddd;"><strong>${paymentId}</strong></td>
-          </tr>
-          <tr>
             <th style="text-align: left; padding: 10px; border: 1px solid #ddd;">Shop Name:</th>
             <td style="padding: 10px; border: 1px solid #ddd;"><strong>${shopName}</strong></td>
+          </tr>
+          <tr>
+            <th style="text-align: left; padding: 10px; border: 1px solid #ddd;">Payment ID:</th>
+            <td style="padding: 10px; border: 1px solid #ddd;"><strong>${paymentId}</strong></td>
           </tr>
           <tr>
             <th style="text-align: left; padding: 10px; border: 1px solid #ddd;">Status:</th>

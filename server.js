@@ -136,7 +136,7 @@ app.post("/api/save-order", async (req, res) => {
       const studentEmail = emailResult.rows[0].email;
 
       // Send order confirmation email
-      await sendOrderConfirmationEmail(studentEmail, payment_id, total,username);
+      await sendOrderConfirmationEmail(studentEmail, payment_id, total,username,shopName);
     } else {
       console.error("Student not found with username:", username);
     }
@@ -265,7 +265,7 @@ app.put("/api/shopkeeper/orders/:payment_id/status", async (req, res) => {
     const studentUsername = student.username;
 
     // Fetch the shop name from the order (assuming it's stored as shopName)
-    const shopName = updatedOrder.shopName || "Your Shop";
+    const shopName = updatedOrder.shopname || "Your Shop";
 
     // Construct the order link (adjust URL as needed)
     const orderLink = `http://localhost:3000/order-history`; // Replace with your frontend domain
