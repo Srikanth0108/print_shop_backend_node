@@ -9,7 +9,48 @@ const transporter = nodemailer.createTransport({
     pass: process.env.EMAIL_PASS, // Your email password or app-specific password
   },
 });
+const sendStudentConfirmationEmail = (to, username) => {
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to,
+    subject: "Account Created Successfully",
+    html: `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+        <h2 style="color: #4CAF50;">Welcome to Printz!</h2>
+        <p>Dear ${username},</p>
+        <p>Thank you for signing up! Your account has been successfully created.</p>
+        
+        <p>We are excited to have you on board. You can now log in and start exploring the services we offer.</p>
 
+        <p style="margin-top: 20px;">If you have any questions or need assistance, please feel free to contact our support team.</p>
+
+        <p>Best Regards,<br>The Printz Team</p>
+      </div>
+    `,
+  };
+
+  return transporter.sendMail(mailOptions);
+};
+const sendShopkeeperConfirmationEmail = (to, username) => {
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to,
+    subject: "Account Created Successfully - Shopkeeper",
+    html: `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+        <h2 style="color: #4CAF50;">Welcome to Printz!</h2>
+        <p>Dear ${username},</p>
+        <p>Your shopkeeper account has been successfully created!</p>
+        <p>We are excited to have you on board. Now, you can easily manage your printing orders and serve your customers efficiently.</p>
+        <p style="margin-top: 20px;">If you have any questions or need assistance, please do not hesitate to contact our support team.</p>
+
+        <p>Best Regards,<br>The Printz Team</p>
+      </div>
+    `,
+  };
+
+  return transporter.sendMail(mailOptions);
+};
 // Function to send reset password email
 const sendResetPasswordEmail = (to, link) => {
   const mailOptions = {
@@ -132,4 +173,6 @@ module.exports = {
   sendResetPasswordEmail,
   sendOrderConfirmationEmail,
   sendOrderStatusUpdateEmail,
+  sendStudentConfirmationEmail,
+  sendShopkeeperConfirmationEmail,
 };

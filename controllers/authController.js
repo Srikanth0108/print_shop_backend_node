@@ -56,7 +56,7 @@ exports.studentSignup = async (req, res) => {
 
     // Generate token
     const token = generateToken(newUser.rows[0], "student");
-
+    await emailService.sendStudentConfirmationEmail(email, username);
     res.status(201).json({
       message: "Student signed up successfully.",
       token,
@@ -172,7 +172,7 @@ exports.shopkeeperSignup = async (req, res) => {
 
     // Generate token
     const token = generateToken(newUser.rows[0], "shopkeeper");
-
+    await emailService.sendShopkeeperConfirmationEmail(email, username);
     res.status(201).json({
       message: "Shopkeeper signed up successfully.",
       token,
