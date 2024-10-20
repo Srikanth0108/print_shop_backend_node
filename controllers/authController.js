@@ -166,8 +166,8 @@ exports.shopkeeperSignup = async (req, res) => {
 
     // Insert into database
     const newUser = await db.query(
-      "INSERT INTO shopkeepers (username, email, phone, shop_description, shop_details, password_hash) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
-      [username, email, phone, shopDescription, shopDetails, password_hash]
+      "INSERT INTO shopkeepers (username, email, phone, shop_description, shop_details, password_hash, activity) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *",
+      [username, email, phone, shopDescription, shopDetails, password_hash, true]
     );
 
     // Generate token

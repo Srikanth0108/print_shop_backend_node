@@ -291,6 +291,76 @@ app.put("/api/shopkeeper/orders/:payment_id/status", async (req, res) => {
   }
 });
 
+app.get("/api/shopkeeper/:username/activity", async (req, res) => {
+  const { username } = req.params;
+
+  try {
+    const result = await db.query(
+      "SELECT activity FROM shopkeepers WHERE username = $1",
+      [username]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Shopkeeper not found." });
+    }
+
+    res.json({ active: result.rows[0].activity });
+  } catch (error) {
+    console.error("Error fetching shopkeeper activity status:", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
+});
+
+// New Endpoint to Update Shopkeeper Activity Status
+app.put("/api/shopkeeper/:username/activity", async (req, res) => {
+  const { username } = req.params;
+  const { activity } = req.body;
+
+  // Validate active status
+  if (typeof activity !== "boolean") {
+    return res
+      .status(400)
+      .json({ message: "Active status must be a boolean." });
+  }
+
+  try {
+    const result = await db.query(
+      "UPDATE shopkeepers SET activity = $1 WHERE username = $2",
+      [activity, username]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: "Shopkeeper not found." });
+    }
+
+    res.json({ message: "Activity status updated successfully." });
+  } catch (error) {
+    console.error("Error updating shopkeeper activity status:", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
+});
+
+// New endpoint to check shop activity status
+app.get("/api/shop/:username/activity", async (req, res) => {
+  const { username } = req.params;
+
+  try {
+    const result = await db.query(
+      "SELECT activity FROM shopkeepers WHERE username = $1",
+      [username]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Shop not found." });
+    }
+
+    res.json({ active: result.rows[0].activity }); // Ensure the column name is correct
+  } catch (error) {
+    console.error("Error fetching shop activity status:", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
+});
+
 // Routes
 app.use("/api/auth", authRoutes);
 
