@@ -128,6 +128,22 @@ exports.shopkeeperSignup = async (req, res) => {
     confirmPassword,
     shopDescription,
     shopDetails,
+    // Grayscale prices
+    grayscaleA1,
+    grayscaleA2,
+    grayscaleA3,
+    grayscaleA4,
+    grayscaleA5,
+    grayscaleA6,
+    // Color prices
+    colorA1,
+    colorA2,
+    colorA3,
+    colorA4,
+    colorA5,
+    colorA6,
+    // Binding cost
+    bindingCost,
   } = req.body;
 
   try {
@@ -135,10 +151,24 @@ exports.shopkeeperSignup = async (req, res) => {
     if (
       !username ||
       !email ||
+      !phone ||
       !password ||
       !confirmPassword ||
       !shopDescription ||
-      !shopDetails
+      !shopDetails ||
+      !grayscaleA1 ||
+      !grayscaleA2 ||
+      !grayscaleA3 ||
+      !grayscaleA4 ||
+      !grayscaleA5 ||
+      !grayscaleA6 ||
+      !colorA1 ||
+      !colorA2 ||
+      !colorA3 ||
+      !colorA4 ||
+      !colorA5 ||
+      !colorA6 ||
+      !bindingCost
     ) {
       return res.status(400).json({ message: "All fields are required." });
     }
@@ -166,13 +196,58 @@ exports.shopkeeperSignup = async (req, res) => {
 
     // Insert into database
     const newUser = await db.query(
-      "INSERT INTO shopkeepers (username, email, phone, shop_description, shop_details, password_hash, activity) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *",
-      [username, email, phone, shopDescription, shopDetails, password_hash, true]
+      `INSERT INTO shopkeepers (
+        username, 
+        email, 
+        phone, 
+        shop_description, 
+        shop_details, 
+        password_hash, 
+        activity,
+        grayscale_a1,
+        grayscale_a2,
+        grayscale_a3,
+        grayscale_a4,
+        grayscale_a5,
+        grayscale_a6,
+        color_a1,
+        color_a2,
+        color_a3,
+        color_a4,
+        color_a5,
+        color_a6,
+        binding_cost
+      ) 
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20) 
+      RETURNING *`,
+      [
+        username,
+        email,
+        phone,
+        shopDescription,
+        shopDetails,
+        password_hash,
+        true,
+        grayscaleA1,
+        grayscaleA2,
+        grayscaleA3,
+        grayscaleA4,
+        grayscaleA5,
+        grayscaleA6,
+        colorA1,
+        colorA2,
+        colorA3,
+        colorA4,
+        colorA5,
+        colorA6,
+        bindingCost,
+      ]
     );
 
     // Generate token
     const token = generateToken(newUser.rows[0], "shopkeeper");
     await emailService.sendShopkeeperConfirmationEmail(email, username);
+
     res.status(201).json({
       message: "Shopkeeper signed up successfully.",
       token,
@@ -180,6 +255,26 @@ exports.shopkeeperSignup = async (req, res) => {
         id: newUser.rows[0].id,
         username: newUser.rows[0].username,
         email: newUser.rows[0].email,
+        // Include pricing info in response
+        prices: {
+          grayscale: {
+            A1: newUser.rows[0].grayscale_a1,
+            A2: newUser.rows[0].grayscale_a2,
+            A3: newUser.rows[0].grayscale_a3,
+            A4: newUser.rows[0].grayscale_a4,
+            A5: newUser.rows[0].grayscale_a5,
+            A6: newUser.rows[0].grayscale_a6,
+          },
+          color: {
+            A1: newUser.rows[0].color_a1,
+            A2: newUser.rows[0].color_a2,
+            A3: newUser.rows[0].color_a3,
+            A4: newUser.rows[0].color_a4,
+            A5: newUser.rows[0].color_a5,
+            A6: newUser.rows[0].color_a6,
+          },
+          bindingCost: newUser.rows[0].binding_cost,
+        },
       },
     });
   } catch (error) {

@@ -79,6 +79,69 @@ app.get("/api/shops", async (req, res) => {
     res.status(500).send("Error fetching shop data from the database.");
   }
 });
+
+app.get("/api/shops/:shopName/prices", async (req, res) => {
+  try {
+    const { shopName } = req.params;
+
+    const query = `
+      SELECT 
+        grayscale_a1 as a1_bw,
+        grayscale_a2 as a2_bw,
+        grayscale_a3 as a3_bw,
+        grayscale_a4 as a4_bw,
+        grayscale_a5 as a5_bw,
+        grayscale_a6 as a6_bw,
+        color_a1 as a1_color,
+        color_a2 as a2_color,
+        color_a3 as a3_color,
+        color_a4 as a4_color,
+        color_a5 as a5_color,
+        color_a6 as a6_color,
+        binding_cost
+      FROM shopkeepers 
+      WHERE username = $1 AND activity = true`;
+
+    const result = await db.query(query, [shopName]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Shop not found or is inactive",
+      });
+    }
+
+    // Format the response to match frontend expectations
+    const shopData = result.rows[0];
+    const formattedPrices = {
+      a1_bw: parseFloat(shopData.a1_bw) || 0,
+      a2_bw: parseFloat(shopData.a2_bw) || 0,
+      a3_bw: parseFloat(shopData.a3_bw) || 0,
+      a4_bw: parseFloat(shopData.a4_bw) || 0,
+      a5_bw: parseFloat(shopData.a5_bw) || 0,
+      a6_bw: parseFloat(shopData.a6_bw) || 0,
+      a1_color: parseFloat(shopData.a1_color) || 0,
+      a2_color: parseFloat(shopData.a2_color) || 0,
+      a3_color: parseFloat(shopData.a3_color) || 0,
+      a4_color: parseFloat(shopData.a4_color) || 0,
+      a5_color: parseFloat(shopData.a5_color) || 0,
+      a6_color: parseFloat(shopData.a6_color) || 0,
+      binding_cost: parseFloat(shopData.binding_cost) || 0,
+    };
+
+    res.json({
+      success: true,
+      data: formattedPrices,
+    });
+  } catch (error) {
+    console.error("Error fetching shop prices:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error while fetching shop prices",
+    });
+  }
+});
+
 app.post("/api/save-order", async (req, res) => {
   const {
     username,
@@ -171,7 +234,7 @@ app.get('/api/shopkeeper/profile', async (req, res) => {
   }
 
   try {
-    const query = 'SELECT username, shop_description, shop_details FROM shopkeepers WHERE username = $1';
+    const query = 'SELECT username, shop_description, shop_details,grayscale_a1, grayscale_a2, grayscale_a3, grayscale_a4, grayscale_a5, grayscale_a6,color_a1, color_a2, color_a3, color_a4, color_a5, color_a6,binding_cost FROM shopkeepers WHERE username = $1';
     const values = [username];
     const { rows } = await db.query(query, values);
 
@@ -186,19 +249,87 @@ app.get('/api/shopkeeper/profile', async (req, res) => {
   }
 });
 app.put("/api/shopkeeper/profile", async (req, res) => {
-  const { username, shopDescription, shopDetails } = req.body; // Get data from request body
+  const {
+    username,
+    shop_description, // Changed to match frontend
+    shop_details, // Changed to match frontend
+    grayscale_a1,
+    grayscale_a2,
+    grayscale_a3,
+    grayscale_a4,
+    grayscale_a5,
+    grayscale_a6,
+    color_a1,
+    color_a2,
+    color_a3,
+    color_a4,
+    color_a5,
+    color_a6,
+    binding_cost,
+  } = req.body;
 
-  if (!username || !shopDescription || !shopDetails) {
+  if (
+    !username ||
+    !shop_description || // Changed
+    !shop_details || // Changed
+    grayscale_a1 === undefined ||
+    grayscale_a2 === undefined ||
+    grayscale_a3 === undefined ||
+    grayscale_a4 === undefined ||
+    grayscale_a5 === undefined ||
+    grayscale_a6 === undefined ||
+    color_a1 === undefined ||
+    color_a2 === undefined ||
+    color_a3 === undefined ||
+    color_a4 === undefined ||
+    color_a5 === undefined ||
+    color_a6 === undefined ||
+    binding_cost === undefined
+  ) {
     return res.status(400).json({ message: "All fields are required!" });
   }
 
   try {
     const query = `
       UPDATE shopkeepers 
-      SET shop_description = $1, shop_details = $2 
-      WHERE username = $3
+      SET 
+        shop_description = $1, 
+        shop_details = $2,
+        grayscale_a1 = $3,
+        grayscale_a2 = $4,
+        grayscale_a3 = $5,
+        grayscale_a4 = $6,
+        grayscale_a5 = $7,
+        grayscale_a6 = $8,
+        color_a1 = $9,
+        color_a2 = $10,
+        color_a3 = $11,
+        color_a4 = $12,
+        color_a5 = $13,
+        color_a6 = $14,
+        binding_cost = $15
+      WHERE username = $16
     `;
-    const values = [shopDescription, shopDetails, username];
+
+    const values = [
+      shop_description, // Changed
+      shop_details, // Changed
+      grayscale_a1,
+      grayscale_a2,
+      grayscale_a3,
+      grayscale_a4,
+      grayscale_a5,
+      grayscale_a6,
+      color_a1,
+      color_a2,
+      color_a3,
+      color_a4,
+      color_a5,
+      color_a6,
+      binding_cost,
+      username,
+    ];
+
     const result = await db.query(query, values);
 
     if (result.rowCount === 0) {
@@ -216,7 +347,15 @@ app.get("/api/shopkeeper/orders/:username", async (req, res) => {
   const { username } = req.params;
   try {
     const orders = await db.query(
-      "SELECT username, copies, documents, total, created_at, payment_id, status,pagetype,pagestoprint,specificpages,orientation,binding,frontpageprint,comments,grayscale,frontandback FROM orders WHERE shopName = $1 ORDER BY created_at DESC",
+      `SELECT o.username, o.copies, o.documents, o.total, o.created_at, o.payment_id, o.status, o.pagetype, 
+              o.pagestoprint, o.specificpages, o.orientation, o.binding, o.frontpageprint, o.comments, 
+              o.grayscale, o.frontandback
+       FROM orders o
+       LEFT JOIN teachers t ON o.username = t.username  -- Join to check if the order is from a teacher
+       WHERE o.shopName = $1
+       ORDER BY 
+         CASE WHEN t.username IS NOT NULL THEN 0 ELSE 1 END,  -- Teachers first
+         o.created_at ASC`,
       [username]
     );
     res.json(orders.rows);
