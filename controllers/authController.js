@@ -5,6 +5,7 @@ const jwt = require("jsonwebtoken");
 const emailService = require("../services/emailService");
 
 require("dotenv").config();
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
 
 // Helper function to generate JWT
 const generateToken = (user, userType) => {
@@ -387,7 +388,7 @@ exports.forgotPassword = async (req, res) => {
     }
 
     // Create the reset link
-    const resetLink = `http://localhost:3000/reset-password/${resetToken}`;
+    const resetLink = `${FRONTEND_URL}/reset-password/${resetToken}`;
 
     // Send email with reset link
     await emailService.sendResetPasswordEmail(email, resetLink);

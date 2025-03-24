@@ -16,6 +16,8 @@ const app = express();
 app.use(cors()); // Enable CORS for all routes
 app.use(express.json()); // Parse JSON bodies
 
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
+
 // Nodemailer transporter setup
 const transporter = nodemailer.createTransport({
   service: "gmail",
@@ -36,7 +38,7 @@ app.post("/api/auth/forgot-password", async (req, res) => {
 
   // Generate a reset token
   const resetToken = crypto.randomBytes(32).toString("hex"); // Generate a random token
-  const resetLink = `http://localhost:3000/reset-password/${resetToken}`; // Use backticks for template literals
+  const resetLink = `${FRONTEND_URL}/reset-password/${resetToken}`; // Use backticks for template literals
   const tokenExpiry = new Date(Date.now() + 3600000); // Set expiry for 1 hour
 
   try {
@@ -365,6 +367,126 @@ app.get("/api/shopkeeper/orders/:username", async (req, res) => {
   }
 });
 
+app.get("/api/shopkeeper/insights/:username", async (req, res) => {
+  const { username } = req.params;
+  const { timeRange } = req.query; // Get timeRange from query params
+
+  try {
+    // Calculate the date range based on timeRange
+    const now = new Date();
+    let startDate = new Date();
+
+    switch (timeRange) {
+      case "1h":
+        startDate.setHours(now.getHours() - 1);
+        break;
+      case "4h":
+        startDate.setHours(now.getHours() - 4);
+        break;
+      case "8h":
+        startDate.setHours(now.getHours() - 8);
+        break;
+      case "12h":
+        startDate.setHours(now.getHours() - 12);
+        break;
+      case "1d":
+        startDate.setDate(now.getDate() - 1);
+        break;
+      case "1w":
+        startDate.setDate(now.getDate() - 7);
+        break;
+      case "1m":
+        startDate.setMonth(now.getMonth() - 1);
+        break;
+      case "1y":
+        startDate.setFullYear(now.getFullYear() - 1);
+        break;
+      default:
+        startDate.setDate(now.getDate() - 1); // Default to 1 day
+    }
+
+    // Get overall stats
+    const statsQuery = await db.query(
+      `SELECT 
+         COUNT(*) as total_orders,
+         SUM(total) as total_earnings,
+         COUNT(CASE WHEN status = 'Completed' THEN 1 END) as completed_orders,
+         COUNT(CASE WHEN status = 'Processing' THEN 1 END) as pending_orders,
+         COUNT(CASE WHEN status = 'Failed' THEN 1 END) as failed_orders
+       FROM orders 
+       WHERE shopName = $1 
+       AND created_at >= $2;`,
+      [username, startDate]
+    );
+
+    // Get time series data for the chart
+    const chartQuery = await db.query(
+      `WITH time_series AS (
+        SELECT 
+          date_trunc($1, created_at) as time_slot,
+          COUNT(*) as orders,
+          SUM(total) as earnings,
+          COUNT(CASE WHEN status = 'Completed' THEN 1 END) as completed_orders,
+          COUNT(CASE WHEN status = 'Processing' THEN 1 END) as pending_orders,
+          COUNT(CASE WHEN status = 'Failed' THEN 1 END) as failed_orders
+        FROM orders 
+        WHERE shopName = $2 
+        AND created_at >= $3
+        GROUP BY time_slot
+        ORDER BY time_slot ASC
+      )
+      SELECT 
+        to_char(time_slot, 'YYYY-MM-DD HH24:MI') as time,
+        orders,
+        earnings,
+        completed_orders,
+        pending_orders,
+        failed_orders
+      FROM time_series`,
+      [
+        // Select appropriate time grouping based on timeRange
+        timeRange === "1h"
+          ? "minute"
+          : timeRange === "4h" || timeRange === "8h" || timeRange === "12h"
+          ? "hour"
+          : timeRange === "1d"
+          ? "hour"
+          : timeRange === "1w"
+          ? "day"
+          : timeRange === "1m"
+          ? "day"
+          : "month",
+        username,
+        startDate,
+      ]
+    );
+
+    // Format response
+    const response = {
+      stats: {
+        totalOrders: parseInt(statsQuery.rows[0].total_orders),
+        totalEarnings: parseFloat(statsQuery.rows[0].total_earnings) || 0,
+        completedOrders: parseInt(statsQuery.rows[0].completed_orders),
+        pendingOrders: parseInt(statsQuery.rows[0].pending_orders),
+        failedOrders: parseInt(statsQuery.rows[0].failed_orders), // Added failed orders
+      },
+      chartData: chartQuery.rows.map((row) => ({
+        time: row.time,
+        orders: parseInt(row.orders) || 0,
+        earnings: parseFloat(row.earnings) || 0,
+        completedOrders: parseInt(row.completed_orders) || 0,
+        pendingOrders: parseInt(row.pending_orders) || 0,
+        failedOrders: parseInt(row.failed_orders) || 0,
+      })),
+    };
+
+    res.json(response);
+  } catch (err) {
+    console.error("Error fetching shopkeeper insights:", err.message);
+    res.status(500).send("Server Error");
+  }
+});
+
 // Update Order Status Endpoint
 // Update Order Status Endpoint
 app.put("/api/shopkeeper/orders/:payment_id/status", async (req, res) => {
@@ -407,7 +529,7 @@ app.put("/api/shopkeeper/orders/:payment_id/status", async (req, res) => {
     const shopName = updatedOrder.shopname || "Your Shop";
 
     // Construct the order link (adjust URL as needed)
-    const orderLink = `http://localhost:3000/order-history`; // Replace with your frontend domain
+    const orderLink = `${FRONTEND_URL}/order-history`; // Replace with your frontend domain
 
     // Send the email notification
     await sendOrderStatusUpdateEmail(
